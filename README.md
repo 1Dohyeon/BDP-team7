@@ -2,6 +2,7 @@
 2024-2 빅데이터프로그래밍 기말 프로젝트
 
 https://github.com/BDP-team7/
+```
 ├── data/                # 수집한 원본 데이터 저장 디렉토리
 │   ├── raw/             # 원본 스크래핑 데이터
 │   ├── processed/       # 전처리 완료된 데이터
@@ -17,4 +18,4 @@ https://github.com/BDP-team7/
 │
 ├── docs/                # 문서화 디렉토리
 ├── README.md            # 프로젝트 설명 파일
-
+```
