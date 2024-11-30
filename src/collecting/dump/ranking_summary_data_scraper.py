@@ -172,7 +172,7 @@ class RankingSummaryDataScraper:
         df["currentlyBuying"] = df["currentlyBuying"].apply(self.extract_currently_value)
 
         # 현재 날짜를 모든 row에 추가
-        df["date"] = datetime.now().strftime('%Y%m%d')
+        df["date"] = datetime.now().strftime('%Y%m%d%H%M')
 
         return df
 
