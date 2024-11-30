@@ -24,8 +24,8 @@ class RankingDataCollector:
             return response.json()
         else:
             print(f"""{self.print_line_60}
-                  fail: request api
-                  status code: {response.status_code}
+                    fail: request api
+                    status code: {response.status_code}
 {self.print_line_60}""")
             return None
 
@@ -157,20 +157,20 @@ csv path: {output_path}
             existing_df = pd.read_csv(output_path, encoding='utf-8-sig')
             df = pd.concat([existing_df, df], ignore_index=True)
             print(f"""{self.print_line_60}
-                  success: save csv
-                  csv path: {output_path}
+                    success: save csv
+                    csv path: {output_path}
 {self.print_line_60}""")
         else:
             print(f"""{self.print_line_60}
-                  success: save csv
-                  csv path: {output_path}
+                    success: save csv
+                    csv path: {output_path}
 {self.print_line_60}""")
 
         # 데이터 저장
         df.to_csv(output_path, index=False, encoding='utf-8-sig')
         print(f"""{self.print_line_60}
-                  success: save csv
-                  csv path: {output_path}
+                success: save csv
+                csv path: {output_path}
 {self.print_line_60}""")
 
 
