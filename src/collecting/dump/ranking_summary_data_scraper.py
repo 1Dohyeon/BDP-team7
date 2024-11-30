@@ -7,41 +7,32 @@ import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 
 
 class RankingSummaryDataScraper:
-    def __init__(self):
-        # ChromeDriver 경로 설정
-        self.CHROME_DRIVER_PATH = "./chromedriver-linux64/chromedriver"
-        
-        # ChromeOptions 설정
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument("--headless") 
-        chrome_options.add_argument("--verbose")
-
-        self.driver = webdriver.Chrome(executable_path=self.CHROME_DRIVER_PATH, options=chrome_options)
-
-
+    """초기화"""
+    def __init__(self, driver_path):
+        self.driver_path = driver_path
+        self.driver = None
 
     """ChromeDriver 실행"""
     def start_chromedriver(self):
-        if not os.path.exists(self.CHROME_DRIVER_PATH):
-            raise FileNotFoundError(f"ChromeDriver 경로를 확인하세요: {self.CHROME_DRIVER_PATH}")
-        self.driver = webdriver.Chrome(executable_path=self.CHROME_DRIVER_PATH)
-        print(f"ChromeDriver 실행: {self.CHROME_DRIVER_PATH}")
-        return self.driver
-
+        service = Service(self.driver_path)
+        self.driver = webdriver.Chrome(service=service)
+        print("Chrome 드라이버 실행.")
+        print("=====================================================================")
+        
     """ChromeDriver 종료"""
     def end_chromedriver(self):
-        self.driver.quit()
-        print("ChromeDriver 서비스 종료.")
+        if self.driver:
+            self.driver.quit()
+            print("Chrome 드라이버를 닫음.")
 
-    """URL 목록 가져오기"""
+    """URL 목록"""
     @staticmethod
     def get_urls():
-        # 무신사 랭킹 페이지 URL
-        ranking_urls = {
+        return {
             "clothes_top": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=001000",
             "outers": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=002000",
             "pants": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=003000",
@@ -55,18 +46,16 @@ class RankingSummaryDataScraper:
             "underwears": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=026000",
             "kids": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=106000"
         }
-        return ranking_urls
 
     """파일 경로 생성"""
     @staticmethod
     def get_file_paths(ranking_urls):
-        file_paths = {
-            key: f"./data/raw/ranking-{key}-summary.csv"
+        return {
+            key: f"../../data/raw/ranking-{key.replace('_', '-')}-summary.csv"
             for key in ranking_urls.keys()
         }
-        return file_paths
 
-    """상품명에 색상있으면 color 컬럼으로 추출"""
+    """상품명에서 색상 추출"""
     @staticmethod
     def extract_colors(product_name):
         # 영어, 한글 색상 리스트
@@ -78,7 +67,7 @@ class RankingSummaryDataScraper:
         found_colors = [color for color in colors_list if color in product_name.lower()]
         return " | ".join(found_colors) if found_colors else np.nan
 
-    # 숫자+문자 데이터에서 숫자만 출력
+    """숫자만 추출"""
     @staticmethod
     def extract_currently_value(text):
         if isinstance(text, float) and np.isnan(text):  # NaN 값 처리
@@ -101,7 +90,6 @@ class RankingSummaryDataScraper:
             number *= 1000
 
         # 만 단위는 없었던 것 같음...
-
         return int(number)
 
     """HTML 요소에서 데이터 추출"""
@@ -152,10 +140,10 @@ class RankingSummaryDataScraper:
             }
         # 예외 처리
         except Exception as e:
-            print(f"error: {e}")
+            print(f"데이터 추출 오류: {e}")
             return None
 
-    """데이터프레임 생성 및 후처리"""
+    """데이터프레임 생성 및 처리"""
     def process_dataframe(self, data):
         df = pd.DataFrame(data)
 
@@ -173,53 +161,51 @@ class RankingSummaryDataScraper:
 
         # 현재 날짜를 모든 row에 추가
         df["date"] = datetime.now().strftime('%Y%m%d')
-
+        
         return df
 
-    """데이터프레임을 CSV로 저장 (기존 데이터에 추가)"""
+    """데이터 저장"""
     @staticmethod
-    def save_dataframe(df, file_path):
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-        # 기존 파일이 있으면 병합(테스트 할 때는 덮는 방식으로)
+    def save_to_csv(df, file_path):
         if os.path.exists(file_path):
             existing_df = pd.read_csv(file_path, encoding="utf-8-sig")
             df = pd.concat([existing_df, df], ignore_index=True)
-            print(f"기존 파일에 데이터를 추가했습니다: {file_path}")
+            print(f"기존 파일에 데이터를 추가: {file_path}")
         else:
-            print(f"새 파일 생성: {file_path}")
+            print(f"CSV 파일 새로 생성: {file_path}")
 
-        # 병합된 데이터 저장
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
-        print(f"데이터가 {file_path}에 저장되었습니다.")
-
-    """URL에 접근해 데이터를 스크랩하고 CSV로 저장"""
+        print(f"데이터 저장 완료: {file_path}")
+        print("=====================================================================")
+    
+    """데이터 스크랩"""
     def scrape_data(self, url, file_path):
         self.driver.get(url)
-        time.sleep(3)  # 페이지 렌더링 대기
-
-        # HTML 가져옴
-        html = self.driver.page_source
-        soup = BeautifulSoup(html, 'lxml')
-
-        # 데이터 스크래핑
+        time.sleep(3)
+        soup = BeautifulSoup(self.driver.page_source, 'lxml')
         items = soup.select("div.gtm-view-item-list")
-        data = []
-
-        for item in items:
-            item_data = self.extract_item_data(item)
-            if item_data:
-                data.append(item_data)
-
-        # 데이터가 비어있으면 종료
+        
+        # 데이터 스크래핑 시작
+        data = [self.extract_item_data(item) for item in items if self.extract_item_data(item)]
         if not data:
-            print(f"데이터가 비어 있습니다. URL: {url}")
+            print(f"no data, URL: {url}")
             return
-
-        # 데이터프레임 처리
         df = self.process_dataframe(data)
-        if df is None:
-            return
+        
+        # 데이터 저장 호출
+        self.save_to_csv(df, file_path)
 
-        # 데이터 저장 
-        self.save_dataframe(df, file_path)
+def main():
+    scraper = RankingSummaryDataScraper("C:/chromedriver-win64/chromedriver.exe")
+    scraper.start_chromedriver()
+    urls = scraper.get_urls()
+    file_paths = scraper.get_file_paths(urls)
+    for category, url in urls.items():
+        file_path = file_paths[category]
+        print(f"스크래핑 진행중인 카테고리: {category}")
+        scraper.scrape_data(url, file_path)
+    scraper.end_chromedriver()
+
+
+if __name__ == "__main__":
+    main()
