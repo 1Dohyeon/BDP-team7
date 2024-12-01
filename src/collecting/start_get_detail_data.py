@@ -17,8 +17,11 @@ def main():
     input_dir = "../../data/raw/ranking"  
     output_dir = "../../data/raw" 
 
+    max_threads = 4
+    row_num = 3
+
     # DetailedDataProcessor 클래스 인스턴스 생성
-    processor = DetailedProductDataScraper(driver_path, date, input_dir, output_dir)
+    processor = DetailedProductDataScraper(driver_path, date, input_dir, output_dir, max_threads, row_num)
 
     # 원하는 카테고리의 detail 데이터 수집(수집 안 할 컬럼은 주석처리 하고 실행)
     target_categories = [
@@ -26,9 +29,9 @@ def main():
         # "beauty-items",
         "clothes-top",
         "digital-life",
-        # "fashion-accessories",
-        # "kids",
-        # "outers",
+        "fashion-accessories",
+        "kids",
+        "outers",
         # "pants",
         # "shoes",
         # "skirts",

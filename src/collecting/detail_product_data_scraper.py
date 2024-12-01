@@ -1,21 +1,28 @@
 import os
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 class DetailedProductDataScraper:
-    def __init__(self, driver_path, date, input_dir, output_dir):
+    def __init__(self, driver_path, date, input_dir, output_dir, max_threads=4, row_num=10):
         self.driver_path = driver_path
         self.driver = None
         self.date = date
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.max_threads = max_threads
+        self.row_num = row_num
 
     """ChromeDriver 실행"""
     def start_chromedriver(self):
@@ -67,6 +74,14 @@ class DetailedProductDataScraper:
             product_url = f"https://www.musinsa.com/products/{product_id}"
             self.driver.get(product_url)
             time.sleep(1)
+            # # 최대 10초 대기: 특정 요소가 로드되면 즉시 진행
+            # try:
+            #     WebDriverWait(self.driver, 10).until(
+            #         EC.presence_of_element_located((By.CSS_SELECTOR, "span.text-xs.font-medium.font-pretendard"))
+            #     )
+            # except TimeoutException:
+            #     print(f"페이지 로드 타임아웃 발생 (ID: {product_id}). 데이터를 수집하지 않고 넘어감.")
+            #     return None
 
             # 조회수
             soup = BeautifulSoup(self.driver.page_source, 'lxml')
@@ -80,8 +95,8 @@ class DetailedProductDataScraper:
             likes = self.extract_currently_value(likes_element.text.strip()) if likes_element else None
 
             # 평점, 리뷰 개수
-            rating = None
-            rating_count = None
+            rating = np.nan
+            rating_count = np.nan
             rating_element = soup.select_one("span.font-medium.text-black")
             if rating_element:
                 rating_text = rating_element.text.strip()
@@ -94,11 +109,11 @@ class DetailedProductDataScraper:
             details = {
                 "productId": product_id,
                 "date": self.date,
-                "Views": self.extract_currently_value(views),
-                "Likes": likes,
-                "Rating": rating,
-                "RatingCount": rating_count,
-                "TotalSales": self.extract_currently_value(total_sales),
+                "views": self.extract_currently_value(views),
+                "likes": likes,
+                "rating": rating,
+                "ratingCount": rating_count,
+                "totalSales": self.extract_currently_value(total_sales),
             }
             
             # 데이터 확인(평점만)
@@ -117,7 +132,7 @@ class DetailedProductDataScraper:
             value_element = label_element.find_next("span")
             if value_element:
                 return value_element.text.strip()
-        return None
+        return np.nan
 
     def process_csv_file(self, input_csv, category):
         try:
@@ -165,14 +180,18 @@ class DetailedProductDataScraper:
                         filtered_df = filtered_df[~filtered_df["productId"].isin(merged_df["productId"])]
 
             # 중복 제거 후 모든 productId에 대하여 처리
-            product_ids = filtered_df["productId"].unique()
+            product_ids = filtered_df["productId"].unique()[:self.row_num]
             detailed_data = []
+
+            count = 1
 
             # 상품 데이터 수집
             for product_id in product_ids:
                 result = self.extract_product_details(product_id)
                 if result:
                     detailed_data.append(result)
+                    print(count, category)
+                    count += 1
 
             # 데이터를 카테고리별 CSV 파일에 저장
             output_csv = os.path.join(self.output_dir, f"{category}_details.csv")
@@ -202,19 +221,27 @@ class DetailedProductDataScraper:
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-        for csv_file in os.listdir(self.input_dir):
-            if csv_file.endswith(".csv"):
-                # 파일 이름에서 카테고리 추출
-                category = self.extract_category_from_filename(csv_file)
-                
-                # 카테고리 필터링 (target_categories가 None이 아니면 필터링)
-                if target_categories and category not in target_categories:
-                    print(f"건너뛴 카테고리: {category}")
-                    continue
-                
-                input_csv = os.path.join(self.input_dir, csv_file)
-                print(f"처리 중인 파일: {input_csv}, 카테고리: {category}")
-                self.process_csv_file(input_csv, category)
+        # 멀티스레딩으로 파일 처리
+        with ThreadPoolExecutor(max_workers=self.max_threads) as executor:
+            futures = []
+            for csv_file in os.listdir(self.input_dir):
+                if csv_file.endswith(".csv"):
+                    category = self.extract_category_from_filename(csv_file)
+                    if target_categories and category not in target_categories:
+                        print(f"건너뛴 카테고리: {category}")
+                        continue
+
+                    input_csv = os.path.join(self.input_dir, csv_file)
+                    print(f"처리 중인 파일: {input_csv}, 카테고리: {category}")
+                    # 스레드에 작업 추가
+                    futures.append(executor.submit(self.process_csv_file, input_csv, category))
+
+            # 스레드 작업 완료 확인
+            for future in as_completed(futures):
+                try:
+                    future.result()  # 예외 확인
+                except Exception as e:
+                    print(f"스레드 작업 중 오류 발생: {e}")
 
 
     """파일 이름에서 카테고리 추출"""
