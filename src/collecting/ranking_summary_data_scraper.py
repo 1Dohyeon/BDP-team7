@@ -1,7 +1,6 @@
 import os
 import re
 import time
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -11,13 +10,20 @@ from selenium.webdriver.chrome.service import Service
 
 
 class RankingSummaryDataScraper:
-    """초기화"""
-    def __init__(self, driver_path):
+    """초기화 chromedriver 위치, 수집 날짜, csv 저장 위치"""
+    def __init__(self, driver_path, date, output_dir):
         self.driver_path = driver_path
         self.driver = None
+        self.date = date
+        self.output_dir = output_dir
 
     """ChromeDriver 실행"""
     def start_chromedriver(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")  
+        options.add_argument("--disable-gpu")  # GPU 비활성화
+        options.add_argument("--disable-dev-shm-usage")  # /dev/shm 사용 비활성화 (메모리 부족 문제 방지)
+
         service = Service(self.driver_path)
         self.driver = webdriver.Chrome(service=service)
         print("Chrome 드라이버 실행.")
@@ -48,12 +54,12 @@ class RankingSummaryDataScraper:
         }
 
     """파일 경로 생성"""
-    @staticmethod
-    def get_file_paths(ranking_urls):
+    def get_file_paths(self, ranking_urls):
         return {
-            key: f"../../data/raw/ranking-{key.replace('_', '-')}-summary.csv"
+            key: f"{self.output_dir}/ranking-{key.replace('_', '-')}-summary.csv"
             for key in ranking_urls.keys()
         }
+
 
     """상품명에서 색상 추출"""
     @staticmethod
@@ -144,7 +150,7 @@ class RankingSummaryDataScraper:
             return None
 
     """데이터프레임 생성 및 처리"""
-    def process_dataframe(self, data):
+    def process_dataframe(self, data, category):
         df = pd.DataFrame(data)
 
         # 예외처리, productName 컬럼에 대해 에러가 뜨는 경우가 있었음.
@@ -160,7 +166,10 @@ class RankingSummaryDataScraper:
         df["currentlyBuying"] = df["currentlyBuying"].apply(self.extract_currently_value)
 
         # 현재 날짜를 모든 row에 추가
-        df["date"] = datetime.now().strftime('%Y%m%d')
+        df["date"] = self.date
+
+        # 카테고리 컬럼 추가
+        df["category"] = category
         
         return df
 
@@ -179,7 +188,7 @@ class RankingSummaryDataScraper:
         print("=====================================================================")
     
     """데이터 스크랩"""
-    def scrape_data(self, url, file_path):
+    def scrape_data(self, url, file_path, category):
         self.driver.get(url)
         time.sleep(3)
         soup = BeautifulSoup(self.driver.page_source, 'lxml')
@@ -188,9 +197,11 @@ class RankingSummaryDataScraper:
         # 데이터 스크래핑 시작
         data = [self.extract_item_data(item) for item in items if self.extract_item_data(item)]
         if not data:
-            print(f"no data, URL: {url}")
+            print(f"데이터가 없음, URL: {url}")
             return
-        df = self.process_dataframe(data)
-        
+        df = self.process_dataframe(data, category)
+
         # 데이터 저장 호출
         self.save_to_csv(df, file_path)
+
+    
