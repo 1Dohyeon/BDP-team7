@@ -170,9 +170,9 @@ class RankingSummaryDataScraper:
         df["colors"] = df["productName"].apply(self.extract_colors)
 
         # "현재 조회중", "구매중" 숫자만 추출하여 정수형으로 변환
-        df["currentlyViewing"] = df["currentlyViewing"].apply(self.extract_currently_value)
-        df["currentlyBuying"] = df["currentlyBuying"].apply(self.extract_currently_value)
-        df["totalSales"] = df["totalSales"].apply(self.extract_currently_value)
+        df["currentlyViewing"] = df["currentlyViewing"].apply(self.extract_number_value)
+        df["currentlyBuying"] = df["currentlyBuying"].apply(self.extract_number_value)
+        df["totalSales"] = df["totalSales"].apply(self.extract_number_value)
 
         # 현재 날짜를 모든 row에 추가
         df["date"] = self.date
