@@ -8,7 +8,7 @@
 - `start_get_summary_data.py`: 위 파일 실행시키는 코드
 - `detail_product_data_scraper.py`: 상품 상세 정보 가져옴
 - `start_get_detail_data.py`: 위 파일 실행 시키는 코드
-- `start_get_summary_detail_data.py`: 두 파일(`ranking_summary_data_scraper.py`, `detail_product_data_scraper.py` 실행 시키는 코드)
+- `start_get_summary_detail_data.py`: 두 파일(`ranking_summary_data_scraper.py`, `detail_product_data_scraper.py`) 실행 시키는 코드
 
 ## URL
 
