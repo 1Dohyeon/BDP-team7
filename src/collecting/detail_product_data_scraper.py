@@ -90,10 +90,19 @@ class DetailedProductDataScraper:
             # 누적 판매량
             total_sales = self.extract_text_by_label(soup, "누적판매")
 
-            # 좋아요 수
-            likes_element = soup.select_one("span.text-xs.font-medium.font-pretendard")
-            likes = self.extract_currently_value(likes_element.text.strip()) if likes_element else None
+            # 좋아요 수 추출
+            likes = None
+            like_button_div = soup.find("div", {"aria-label": "좋아요 버튼"})
+            if like_button_div:
+                parent_button = like_button_div.find_parent("button")
+                if parent_button:
+                    sibling_spans = parent_button.find_all_next("span", {"class": "text-xs font-medium font-pretendard"})
+                    for sibling_span in sibling_spans:
+                        span_text = sibling_span.text.strip()
 
+                        if span_text.replace(",", "").isdigit():
+                            likes = int(span_text.replace(",", ""))
+                            break
             # 평점, 리뷰 개수
             rating = np.nan
             rating_count = np.nan
