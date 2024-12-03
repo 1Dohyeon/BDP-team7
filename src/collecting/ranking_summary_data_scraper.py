@@ -39,18 +39,18 @@ class RankingSummaryDataScraper:
     @staticmethod
     def get_urls():
         return {
-            "clothes_top": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=001000",
-            "outers": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=002000",
-            "pants": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=003000",
-            "bags": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=004000",
-            "skirts": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=100000",
-            "fashion_accessories": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=101000",
-            "digital_life": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=102000",
-            "shoes": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=103000",
-            "beauty_items": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=104000",
-            "sportswears": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=017000",
-            "underwears": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=026000",
-            "kids": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=106000"
+            "clothes_top": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=199&categoryCode=001000&period=MONTHLY",
+            "outers": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=199&categoryCode=002000&period=MONTHLY",
+            "pants": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=199&categoryCode=003000&period=MONTHLY",
+            # "bags": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=004000",
+            # "skirts": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=100000",
+            # "fashion_accessories": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=101000",
+            # "digital_life": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=102000",
+            "shoes": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=199&categoryCode=103000&period=MONTHLY",
+            # "beauty_items": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=104000",
+            # "sportswears": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=017000",
+            # "underwears": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=026000",
+            # "kids": "https://www.musinsa.com/main/musinsa/ranking?skip_bf=Y&storeCode=musinsa&sectionId=200&categoryCode=106000"
         }
 
     """파일 경로 생성"""
@@ -75,7 +75,7 @@ class RankingSummaryDataScraper:
 
     """숫자만 추출"""
     @staticmethod
-    def extract_currently_value(text):
+    def extract_number_value(text):
         if isinstance(text, float) and np.isnan(text):  # NaN 값 처리
             return 0
         
@@ -95,7 +95,9 @@ class RankingSummaryDataScraper:
         if "천" in text:  # "천" 단위 처리
             number *= 1000
 
-        # 만 단위는 없었던 것 같음...
+        if "만" in text:  # "만" 단위 처리
+            number *= 10000
+
         return int(number)
 
     """HTML 요소에서 데이터 추출"""
@@ -129,6 +131,11 @@ class RankingSummaryDataScraper:
             trending_element = item.select_one('div.sc-1m4cyao-1.dYjLwF > div > span > span')
             trending = 1 if trending_element and "급상승" in trending_element.text else 0
 
+            # 전체 판매량 ㅉ
+            total_sales_element = item.select_one('.text-etc_11px_reg.sc-1m4cyao-7.eYXbyJ.font-pretendard')
+            total_sales = total_sales_element.text.strip() if total_sales_element else np.nan
+
+
             # 랭킹 정보
             ranking_element = item.select_one('div.sc-1m4cyao-1.dYjLwF > span > span')
             ranking = ranking_element.text.strip() if ranking_element else np.nan
@@ -143,6 +150,7 @@ class RankingSummaryDataScraper:
                 "currentlyBuying": currently_buying,
                 "ranking": ranking,
                 "trending": trending,
+                "totalSales": total_sales
             }
         # 예외 처리
         except Exception as e:
@@ -162,8 +170,9 @@ class RankingSummaryDataScraper:
         df["colors"] = df["productName"].apply(self.extract_colors)
 
         # "현재 조회중", "구매중" 숫자만 추출하여 정수형으로 변환
-        df["currentlyViewing"] = df["currentlyViewing"].apply(self.extract_currently_value)
-        df["currentlyBuying"] = df["currentlyBuying"].apply(self.extract_currently_value)
+        df["currentlyViewing"] = df["currentlyViewing"].apply(self.extract_number_value)
+        df["currentlyBuying"] = df["currentlyBuying"].apply(self.extract_number_value)
+        df["totalSales"] = df["totalSales"].apply(self.extract_number_value)
 
         # 현재 날짜를 모든 row에 추가
         df["date"] = self.date

@@ -2,12 +2,13 @@
 
 ## 디렉토리 구조
 
-```
-dump/                             # 사용되지 않는 코드 폴더
-README.md
-ranking_summary_data_scraper.py   # 랭킹 상품 기본 정보만 가져옴
-start_get_summary_data.py         # 위 파일 실행시키는 코드(python3.6 start_get_summary_data.py)
-```
+- `dump/`: 사용되지 않는 코드 폴더
+- `README.md`
+- `ranking_summary_data_scraper.py`: 랭킹 상품 기본 정보만 가져옴
+- `start_get_summary_data.py`: 위 파일 실행시키는 코드
+- `detail_product_data_scraper.py`: 상품 상세 정보 가져옴
+- `start_get_detail_data.py`: 위 파일 실행 시키는 코드
+- `start_get_summary_detail_data.py`: 두 파일(`ranking_summary_data_scraper.py`, `detail_product_data_scraper.py`) 실행 시키는 코드
 
 ## URL
 

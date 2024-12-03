@@ -44,7 +44,7 @@ class DetailedProductDataScraper:
 
     """숫자만 추출"""
     @staticmethod
-    def extract_number_value(text):
+    def extract_currently_value(text):
         if isinstance(text, float) and np.isnan(text):
             return 0
         if isinstance(text, list):
@@ -83,25 +83,13 @@ class DetailedProductDataScraper:
             #     print(f"페이지 로드 타임아웃 발생 (ID: {product_id}). 데이터를 수집하지 않고 넘어감.")
             #     return None
 
-            html = self.driver.page_source
-            soup = BeautifulSoup(html, 'lxml')
+            # 조회수
+            soup = BeautifulSoup(self.driver.page_source, 'lxml')
+            views = self.extract_text_by_label(soup, "조회수")
 
-            # 조회수 추출
-            views = None
-            views_label = soup.find("span", string="조회수")  # `text`를 `string`으로 변경
-            if views_label:
-                views_element = views_label.find_next("span")
-                if views_element:
-                    views = views_element.text.strip()
-                    
-            # 총 판매량 추출
-            total_sales = None
-            total_sales_label = soup.find("span", string="누적판매")  # `text`를 `string`으로 변경
-            if total_sales_label:
-                total_sales_element = total_sales_label.find_next("span")
-                if total_sales_element:
-                    total_sales = total_sales_element.text.strip()
-                    
+            # 누적 판매량
+            total_sales = self.extract_text_by_label(soup, "누적판매")
+
             # 좋아요 수 추출
             likes = None
             like_button_div = soup.find("div", {"aria-label": "좋아요 버튼"})
@@ -111,40 +99,34 @@ class DetailedProductDataScraper:
                     sibling_spans = parent_button.find_all_next("span", {"class": "text-xs font-medium font-pretendard"})
                     for sibling_span in sibling_spans:
                         span_text = sibling_span.text.strip()
-    
+
                         if span_text.replace(",", "").isdigit():
                             likes = int(span_text.replace(",", ""))
                             break
-                        
-            rating = None
-            rating_count = None
-    
+            # 평점, 리뷰 개수
+            rating = np.nan
+            rating_count = np.nan
             rating_element = soup.select_one("span.font-medium.text-black")
             if rating_element:
                 rating_text = rating_element.text.strip()
-                if rating_text.replace(".", "", 1).isdigit():  # 소수점 허용
-                    rating = float(rating_text)  # 평점은 소수로 변환
-    
-            if rating_element:
+                if rating_text.replace(".", "", 1).isdigit():
+                    rating = float(rating_text)
                 sibling_element = rating_element.find_next_sibling("span")
-                if sibling_element and sibling_element.text.strip():
-                    rating_count = self.extract_number_value(sibling_element.text.strip())
-    
-                
-            # 텍스트를 숫자로 변환
-            views = self.extract_number_value(views) if views else None
+                if sibling_element:
+                    rating_count = self.extract_currently_value(sibling_element.text.strip())
 
             details = {
                 "productId": product_id,
                 "date": self.date,
-                "views": views,
+                "views": self.extract_currently_value(views),
                 "likes": likes,
                 "rating": rating,
-                "ratingCount": rating_count, 
+                "ratingCount": rating_count,
+                "totalSales": self.extract_currently_value(total_sales),
             }
             
-            # 데이터 확인
-            print(details)
+            # 데이터 확인(평점만)
+            print(f"Rating: {rating}")
 
             return details
         except Exception as e:
@@ -185,7 +167,7 @@ class DetailedProductDataScraper:
                 return
 
             # 이미 수집된 detail 데이터 읽기
-            detail_file = os.path.join(self.output_dir, f"detail-{category}.csv")
+            detail_file = os.path.join(self.output_dir, f"{category}_details.csv")
             if os.path.exists(detail_file):
                 detail_df = pd.read_csv(detail_file)
                 if "productId" in detail_df.columns and "date" in detail_df.columns:
@@ -206,11 +188,8 @@ class DetailedProductDataScraper:
                         print(f"'{category}' 카테고리의 일부 데이터가 이미 수집되었습니다. 중복 데이터 제외 후 진행합니다.")
                         filtered_df = filtered_df[~filtered_df["productId"].isin(merged_df["productId"])]
 
-            # 중복 제거 후 self.row_num만큼의 productId에 대하여 처리
-            # product_ids = filtered_df["productId"].unique()[:self.row_num]
-
             # 중복 제거 후 모든 productId에 대하여 처리
-            product_ids = filtered_df["productId"].unique()[:]
+            product_ids = filtered_df["productId"].unique()[:self.row_num]
             detailed_data = []
 
             count = 1
@@ -224,7 +203,7 @@ class DetailedProductDataScraper:
                     count += 1
 
             # 데이터를 카테고리별 CSV 파일에 저장
-            output_csv = os.path.join(self.output_dir, f"detail-{category}.csv")
+            output_csv = os.path.join(self.output_dir, f"{category}_details.csv")
             self.save_to_csv(pd.DataFrame(detailed_data), output_csv)
         except Exception as e:
             print(f"파일 처리 중 오류 발생: {e}")
@@ -251,24 +230,27 @@ class DetailedProductDataScraper:
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-        # 단일 파일 처리
-        for csv_file in os.listdir(self.input_dir):
-            if csv_file.endswith(".csv"):
-                # 파일 이름에서 카테고리 추출
-                category = self.extract_category_from_filename(csv_file)
-                if target_categories and category not in target_categories:
-                    print(f"건너뛴 카테고리: {category}")
-                    continue
+        # 멀티스레딩으로 파일 처리
+        with ThreadPoolExecutor(max_workers=self.max_threads) as executor:
+            futures = []
+            for csv_file in os.listdir(self.input_dir):
+                if csv_file.endswith(".csv"):
+                    category = self.extract_category_from_filename(csv_file)
+                    if target_categories and category not in target_categories:
+                        print(f"건너뛴 카테고리: {category}")
+                        continue
 
-                input_csv = os.path.join(self.input_dir, csv_file)
-                print(f"처리 중인 파일: {input_csv}, 카테고리: {category}")
+                    input_csv = os.path.join(self.input_dir, csv_file)
+                    print(f"처리 중인 파일: {input_csv}, 카테고리: {category}")
+                    # 스레드에 작업 추가
+                    futures.append(executor.submit(self.process_csv_file, input_csv, category))
 
-                # CSV 파일 처리
+            # 스레드 작업 완료 확인
+            for future in as_completed(futures):
                 try:
-                    self.process_csv_file(input_csv, category)
+                    future.result()  # 예외 확인
                 except Exception as e:
-                    print(f"파일 처리 중 오류 발생 (파일: {input_csv}, 카테고리: {category}): {e}")
-
+                    print(f"스레드 작업 중 오류 발생: {e}")
 
 
     """파일 이름에서 카테고리 추출"""

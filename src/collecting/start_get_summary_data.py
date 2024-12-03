@@ -13,7 +13,7 @@ def main():
     # date = "yyyyMMddHH"
     
     # output 저장 디렉토리
-    output_dir = "../../data/raw/ranking" 
+    output_dir = "../../data/raw/ranking/temp" 
 
     scraper = RankingSummaryDataScraper(driver_path, date, output_dir)
     
