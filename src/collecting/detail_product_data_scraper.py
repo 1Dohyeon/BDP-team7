@@ -143,8 +143,8 @@ class DetailedProductDataScraper:
                 "ratingCount": rating_count, 
             }
             
-            # 데이터 확인(평점만)
-            print(f"Rating: {rating}")
+            # 데이터 확인
+            print(details)
 
             return details
         except Exception as e:
@@ -206,8 +206,11 @@ class DetailedProductDataScraper:
                         print(f"'{category}' 카테고리의 일부 데이터가 이미 수집되었습니다. 중복 데이터 제외 후 진행합니다.")
                         filtered_df = filtered_df[~filtered_df["productId"].isin(merged_df["productId"])]
 
+            # 중복 제거 후 self.row_num만큼의 productId에 대하여 처리
+            # product_ids = filtered_df["productId"].unique()[:self.row_num]
+
             # 중복 제거 후 모든 productId에 대하여 처리
-            product_ids = filtered_df["productId"].unique()[:self.row_num]
+            product_ids = filtered_df["productId"].unique()[:]
             detailed_data = []
 
             count = 1
