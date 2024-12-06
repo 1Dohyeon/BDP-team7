@@ -1,34 +1,28 @@
 import os
+
 import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.functions import (
-    split,
-    expr,
-    regexp_replace,
-    col,
-    udf,
-    explode,
-    collect_set,
-    collect_list,
-    trim,
-    size
-)
+from pyspark.sql.functions import (col, collect_list, collect_set, explode,
+                                   expr, regexp_replace, size, split, trim,
+                                   udf)
+
 
 class ProductRankingProcessor:
     def __init__(self):
         self.spark = SparkSession.builder.appName("BDP").getOrCreate()
 
     def load_data(self):
-        # CSV 파일 읽기
-        self.ranking_clothes_top_data = self.spark.read.csv("../../data/raw/ranking-clothes-top-summary.csv", header=True, inferSchema=True)
-        self.ranking_pants_data = self.spark.read.csv("../../data/raw/ranking-pants-summary.csv", header=True, inferSchema=True)
-        self.ranking_outers_data = self.spark.read.csv("../../data/raw/ranking-outers-summary.csv", header=True, inferSchema=True)
-        self.ranking_shoes_data = self.spark.read.csv("../../data/raw/ranking-shoes-summary.csv", header=True, inferSchema=True)
-        self.detail_clothes_top_data = self.spark.read.csv("../../data/raw/detail-clothes-top.csv", header=True, inferSchema=True)
-        self.detail_pants_data = self.spark.read.csv("../../data/raw/detail-pants.csv", header=True, inferSchema=True)
-        self.detail_outers_data = self.spark.read.csv("../../data/raw/detail-outers.csv", header=True, inferSchema=True)
-        self.detail_shoes_data = self.spark.read.csv("../../data/raw/detail-shoes.csv", header=True, inferSchema=True)
+        # HDFS에서 CSV 파일 읽기
+        self.ranking_clothes_top_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/ranking-clothes-top-summary.csv", header=True, inferSchema=True)
+        self.ranking_pants_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/ranking-pants-summary.csv", header=True, inferSchema=True)
+        self.ranking_outers_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/ranking-outers-summary.csv", header=True, inferSchema=True)
+        self.ranking_shoes_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/ranking-shoes-summary.csv", header=True, inferSchema=True)
+        self.detail_clothes_top_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/detail-clothes-top.csv", header=True, inferSchema=True)
+        self.detail_pants_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/detail-pants.csv", header=True, inferSchema=True)
+        self.detail_outers_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/detail-outers.csv", header=True, inferSchema=True)
+        self.detail_shoes_data = self.spark.read.csv("hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/raw/detail-shoes.csv", header=True, inferSchema=True)
+
 
     def process_ranking_data(self):
         # Ranking 데이터 합치기
