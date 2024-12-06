@@ -1,11 +1,13 @@
 import os
 
 from pyspark.ml import Pipeline
-from pyspark.ml.feature import CountVectorizer, OneHotEncoder, StringIndexer
+from pyspark.ml.feature import CountVectorizer, OneHotEncoder, StringIndexer, VectorAssembler
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.functions import col, desc, explode, lower, regexp_replace, row_number, when
+from pyspark.sql.functions import col, desc, explode, lower, regexp_replace, row_number, when, expr, split
 from pyspark.sql.window import Window
+from pyspark.ml.classification import RandomForestClassifier
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
 
 class ProductRecommendation:
@@ -87,6 +89,53 @@ class ProductRecommendation:
         vectorized_model = vectorizer.fit(filtered_keywords)
         self.vectorized_data = vectorized_model.transform(filtered_keywords)
 
+    def train_models(self):
+        def train_model(data):
+            assembler = VectorAssembler(
+                inputCols=["brand_ohe", "colors_ohe", "keyword_features", "price", "discountRate", "conversionRate",
+                           "trending", "totalSales", "views", "likes", "rating", "ratingCount"],
+                outputCol="features"
+            )
+            rf = RandomForestClassifier(featuresCol="features", labelCol="recommend")
+            pipeline = Pipeline(stages=[assembler, rf])
+            model = pipeline.fit(data)
+            return model
+
+        self.clothes_top_data = self.vectorized_data.filter(col("category") == "clothes_top")
+        self.pants_data = self.vectorized_data.filter(col("category") == "pants")
+        self.shoes_data = self.vectorized_data.filter(col("category") == "shoes")
+        self.outers_data = self.vectorized_data.filter(col("category") == "outers")
+
+        self.clothes_top_data_train, self.clothes_top_data_test = self.clothes_top_data.randomSplit([0.8, 0.2], seed=42)
+        self.pants_data_train, self.pants_data_test = self.pants_data.randomSplit([0.8, 0.2], seed=42)
+        self.shoes_data_train, self.shoes_data_test = self.shoes_data.randomSplit([0.8, 0.2], seed=42)
+        self.outers_data_train, self.outers_data_test = self.outers_data.randomSplit([0.8, 0.2], seed=42)
+
+        # 모델 훈련
+        self.clothes_top_model = train_model(self.clothes_top_data_train)
+        self.pants_model = train_model(self.pants_data_train)
+        self.shoes_model = train_model(self.shoes_data_train)
+        self.outers_model = train_model(self.outers_data_train)
+
+    def evaluate_models(self):
+        def evaluate_model(model, test_data):
+            predictions = model.transform(test_data)
+            evaluator = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="accuracy")
+            accuracy = evaluator.evaluate(predictions)
+            return accuracy
+
+        # 훈련 데이터 정확도 계산
+        self.clothes_top_accuracy_train = evaluate_model(self.clothes_top_model, self.clothes_top_data_train)
+        self.pants_accuracy_train = evaluate_model(self.pants_model, self.pants_data_train)
+        self.shoes_accuracy_train = evaluate_model(self.shoes_model, self.shoes_data_train)
+        self.outers_accuracy_train = evaluate_model(self.outers_model, self.outers_data_train)
+
+        # 테스트 데이터 정확도 계산
+        self.clothes_top_accuracy_test = evaluate_model(self.clothes_top_model, self.clothes_top_data_test)
+        self.pants_accuracy_test = evaluate_model(self.pants_model, self.pants_data_test)
+        self.shoes_accuracy_test = evaluate_model(self.shoes_model, self.shoes_data_test)
+        self.outers_accuracy_test = evaluate_model(self.outers_model, self.outers_data_test)
+
 def main():
     # product_rankings_path, product_keywords_path
     product_rankings_path = "hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/processed/product_rankings.csv"
@@ -97,6 +146,8 @@ def main():
     
     recommendation.preprocess_data()
     recommendation.vectorize_keywords()
+    recommendation.train_models()
+    recommendation.evaluate_models()
 
 if __name__ == "__main__":
     main()
