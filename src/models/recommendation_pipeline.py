@@ -110,9 +110,9 @@ class ProductRecommendation:
         self.outers_data = self.vectorized_data.filter(col("category") == "outers")
 
         self.clothes_top_data_train, self.clothes_top_data_test = self.clothes_top_data.randomSplit([0.8, 0.2], seed=42)
-        self.pants_data_train, self.pants_data_test = self.pants_data.randomSplit([0.8, 0.2], seed=42)
-        self.shoes_data_train, self.shoes_data_test = self.shoes_data.randomSplit([0.8, 0.2], seed=42)
-        self.outers_data_train, self.outers_data_test = self.outers_data.randomSplit([0.8, 0.2], seed=42)
+        self.pants_data_train, self.pants_data_test = self.pants_data.randomSplit([0.7, 0.3], seed=42)
+        self.shoes_data_train, self.shoes_data_test = self.shoes_data.randomSplit([0.7, 0.3], seed=42)
+        self.outers_data_train, self.outers_data_test = self.outers_data.randomSplit([0.7, 0.3], seed=42)
 
         # 모델 훈련
         self.clothes_top_model = train_model(self.clothes_top_data_train)
