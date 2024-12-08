@@ -1,0 +1,207 @@
+{
+  "type": "PRODUCT_COLUMN",
+  "id": "4550358",
+  "info": {
+    "brandName": "뉴발란스",
+    "productName": "NBNPE4A143 / 남여공용 액티브 Pertex 후드 구스다운 (BLACK)",
+    "discountRatio": 30,
+    "finalPrice": 251300,
+    "strikethrough": false,
+    "additionalInformation": [
+      {
+        "text": "1.2천명이 보는 중"
+      },
+      {
+        "text": "62명이 구매 중"
+      }
+    ],
+    "onClickBrandName": {
+      "url": "https://www.musinsa.com/brand/newbalance",
+      "eventLog": {
+        "ga4": {
+          "name": "click_brand",
+          "payload": {
+            "page_id": "/main/musinsa/ranking",
+            "section_name": "ranking_goods_list",
+            "section_index": "4",
+            "index": "8",
+            "applied_tab": "ranking_theme_new",
+            "applied_filter_group_1": "성별:전체 성별|연령별:전체 연령대|주기별:실시간",
+            "extra_info": "NEW",
+            "brand_id": "newbalance"
+          }
+        },
+        "amplitude": {
+          "name": "click_brand_button",
+          "payload": {
+            "from": "screen_main_musinsa_ranking",
+            "section_name": "ranking_goods_list",
+            "section_index": "4",
+            "index": "8",
+            "applied_tab": "ranking_theme_new",
+            "type_2": "NEW",
+            "gender_filter": "A",
+            "url": "https://www.musinsa.com/brand/newbalance",
+            "spc_code": "musinsa",
+            "brand_id": "newbalance",
+            "brand_name": "뉴발란스",
+            "category_id": "000",
+            "applied_filter_type": "성별, 연령별, 주기별",
+            "applied_filter_value": "전체 성별, 전체 연령대, 실시간"
+          }
+        }
+      }
+    }
+  },
+  "onClick": {
+    "url": "https://www.musinsa.com/products/4550358",
+    "eventLog": {
+      "ga4": {
+        "name": "select_item",
+        "payload": {
+          "page_id": "/main/musinsa/ranking",
+          "section_name": "ranking_goods_list",
+          "section_index": "4",
+          "index": "8",
+          "applied_tab": "ranking_theme_new",
+          "applied_filter_group_1": "성별:전체 성별|연령별:전체 연령대|주기별:실시간",
+          "extra_info": "NEW",
+          "item_id": "4550358",
+          "price": 251300,
+          "original_price": 359000,
+          "item_brand": "newbalance",
+          "discount": 107700,
+          "discount_rate": 30,
+          "item_list_id": "ranking_goods_list",
+          "item_list_index": "8",
+          "quantity": 1,
+          "item_applied_filter_group_1": "성별:전체 성별|연령별:전체 연령대|주기별:실시간",
+          "item_category_id": "000",
+          "item_extra_info": "NEW",
+          "item_flag": "none",
+          "item_applied_tab": "ranking_theme_new"
+        }
+      },
+      "amplitude": {
+        "name": "click_product",
+        "payload": {
+          "from": "screen_main_musinsa_ranking",
+          "section_name": "ranking_goods_list",
+          "section_index": "4",
+          "index": "8",
+          "applied_tab": "ranking_theme_new",
+          "type_2": "NEW",
+          "gender_filter": "A",
+          "url": "https://www.musinsa.com/products/4550358",
+          "spc_code": "player",
+          "brand_id": "newbalance",
+          "brand_name": "뉴발란스",
+          "category_id": "000",
+          "applied_filter_type": "성별, 연령별, 주기별",
+          "applied_filter_value": "전체 성별, 전체 연령대, 실시간",
+          "product_id": "4550358",
+          "product_name": "NBNPE4A143 / 남여공용 액티브 Pertex 후드 구스다운 (BLACK)",
+          "original_price": "359000",
+          "price": "251300",
+          "discount_rate": "30",
+          "reviewCount": "7",
+          "reviewScore": "98",
+          "product_label": "none"
+        }
+      }
+    }
+  },
+  "impressionEventLog": {
+    "ga4": {
+      "name": "view_item_list",
+      "payload": {
+        "page_id": "/main/musinsa/ranking",
+        "section_name": "ranking_goods_list",
+        "section_index": "4",
+        "index": "8",
+        "applied_tab": "ranking_theme_new",
+        "applied_filter_group_1": "성별:전체 성별|연령별:전체 연령대|주기별:실시간",
+        "extra_info": "NEW",
+        "item_id": "4550358",
+        "price": 251300,
+        "original_price": 359000,
+        "item_brand": "newbalance",
+        "discount": 107700,
+        "discount_rate": 30,
+        "item_list_id": "ranking_goods_list",
+        "item_list_index": "8",
+        "quantity": 1,
+        "item_applied_filter_group_1": "성별:전체 성별|연령별:전체 연령대|주기별:실시간",
+        "item_category_id": "000",
+        "item_extra_info": "NEW",
+        "item_flag": "none",
+        "item_applied_tab": "ranking_theme_new"
+      }
+    }
+  },
+  "image": {
+    "rank": 8,
+    "url": "https://image.msscdn.net/images/goods_img/20241023/4550358/4550358_17307676764026_500.jpg",
+    "labels": [
+      {
+        "backgroundColor": "#4A4A4A",
+        "textColor": "#FFFFFF",
+        "text": "판매 2.2천개"
+      }
+    ],
+    "onClickLike": {
+      "productId": "4550358",
+      "eventLog": {
+        "ga4": {
+          "payload": {
+            "page_id": "/main/musinsa/ranking",
+            "section_name": "ranking_goods_list",
+            "section_index": "4",
+            "index": "8",
+            "applied_tab": "ranking_theme_new",
+            "applied_filter_group_1": "성별:전체 성별|연령별:전체 연령대|주기별:실시간",
+            "extra_info": "NEW",
+            "liked_item_id": "4550358",
+            "item_extra_info": "NEW",
+            "item_applied_tab": "ranking_theme_new"
+          }
+        },
+        "amplitude": {
+          "payload": {
+            "from": "screen_main_musinsa_ranking",
+            "section_name": "ranking_goods_list",
+            "section_index": "4",
+            "index": "8",
+            "applied_tab": "ranking_theme_new",
+            "type_2": "NEW",
+            "gender_filter": "A",
+            "url": "https://www.musinsa.com/products/4550358",
+            "spc_code": "player",
+            "brand_id": "newbalance",
+            "brand_name": "뉴발란스",
+            "category_id": "000",
+            "applied_filter_type": "성별, 연령별, 주기별",
+            "applied_filter_value": "전체 성별, 전체 연령대, 실시간",
+            "product_id": "4550358",
+            "product_name": "NBNPE4A143 / 남여공용 액티브 Pertex 후드 구스다운 (BLACK)",
+            "original_price": "359000",
+            "price": "251300",
+            "discount_rate": "30",
+            "reviewCount": "7",
+            "reviewScore": "98",
+            "product_label": "none"
+          }
+        },
+        "braze": {
+          "payload": {
+            "goods_no": "4550358",
+            "goods_nm": "NBNPE4A143 / 남여공용 액티브 Pertex 후드 구스다운 (BLACK)",
+            "brand": "newbalance",
+            "brand_nm": "뉴발란스",
+            "img": "https://image.msscdn.net/images/goods_img/20241023/4550358/4550358_17307676764026_500.jpg"
+          }
+        }
+      }
+    }
+  }
+}
