@@ -135,6 +135,71 @@ class ProductRecommendation:
         self.pants_accuracy_test = evaluate_model(self.pants_model, self.pants_data_test)
         self.shoes_accuracy_test = evaluate_model(self.shoes_model, self.shoes_data_test)
         self.outers_accuracy_test = evaluate_model(self.outers_model, self.outers_data_test)
+    
+    def predict_and_evaluate(self):
+        def predict_recommendation(test_data, model):
+            predictions = model.transform(test_data)
+            predictions = predictions.withColumn("predicted_recommend", F.col("prediction"))
+            return predictions
+
+        clothes_top_predictions = predict_recommendation(self.clothes_top_data_test, self.clothes_top_model)
+        pants_predictions = predict_recommendation(self.pants_data_test, self.pants_model)
+        shoes_predictions = predict_recommendation(self.shoes_data_test, self.shoes_model)
+        outers_predictions = predict_recommendation(self.outers_data_test, self.outers_model)
+
+        self.clothes_top_predictions_result = clothes_top_predictions.select("productId", "recommend", "predicted_recommend")
+        self.pants_predictions_result = pants_predictions.select("productId", "recommend", "predicted_recommend")
+        self.shoes_predictions_result = shoes_predictions.select("productId", "recommend", "predicted_recommend")
+        self.outers_predictions_result = outers_predictions.select("productId", "recommend", "predicted_recommend")
+
+        """print(f"Clothes Top Train Accuracy: {self.clothes_top_accuracy_train:.4f}")
+        print(f"Pants Train Accuracy: {self.pants_accuracy_train:.4f}")
+        print(f"Shoes Train Accuracy: {self.shoes_accuracy_train:.4f}")
+        print(f"Outers Train Accuracy: {self.outers_accuracy_train:.4f}")
+
+        print(f"Clothes Top Test Accuracy: {self.clothes_top_accuracy_test:.4f}")
+        print(f"Pants Test Accuracy: {self.pants_accuracy_test:.4f}")
+        print(f"Shoes Test Accuracy: {self.shoes_accuracy_test:.4f}")
+        print(f"Outers Test Accuracy: {self.outers_accuracy_test:.4f}")"""
+
+        print(f"Clothes Top Train Accuracy: {self.clothes_top_accuracy_train:.4f}, Precision: {self.clothes_top_precision_train:.4f}, Recall: {self.clothes_top_recall_train:.4f}")
+        print(f"Pants Train Accuracy: {self.pants_accuracy_train:.4f}, Precision: {self.pants_precision_train:.4f}, Recall: {self.pants_recall_train:.4f}")
+        print(f"Shoes Train Accuracy: {self.shoes_accuracy_train:.4f}, Precision: {self.shoes_precision_train:.4f}, Recall: {self.shoes_recall_train:.4f}")
+        print(f"Outers Train Accuracy: {self.outers_accuracy_train:.4f}, Precision: {self.outers_precision_train:.4f}, Recall: {self.outers_recall_train:.4f}")
+
+        print(f"Clothes Top Test Accuracy: {self.clothes_top_accuracy_test:.4f}, Precision: {self.clothes_top_precision_test:.4f}, Recall: {self.clothes_top_recall_test:.4f}")
+        print(f"Pants Test Accuracy: {self.pants_accuracy_test:.4f}, Precision: {self.pants_precision_test:.4f}, Recall: {self.pants_recall_test:.4f}")
+        print(f"Shoes Test Accuracy: {self.shoes_accuracy_test:.4f}, Precision: {self.shoes_precision_test:.4f}, Recall: {self.shoes_recall_test:.4f}")
+        print(f"Outers Test Accuracy: {self.outers_accuracy_test:.4f}, Precision: {self.outers_precision_test:.4f}, Recall: {self.outers_recall_test:.4f}")
+
+
+        all_predictions_result = self.clothes_top_predictions_result \
+            .union(self.pants_predictions_result) \
+            .union(self.shoes_predictions_result) \
+            .union(self.outers_predictions_result)
+
+        tp = all_predictions_result.filter(F.col("predicted_recommend") == 1).filter(F.col("recommend") == 1).count()  # 1 -> 1
+        fn = all_predictions_result.filter(F.col("predicted_recommend") == 0).filter(F.col("recommend") == 1).count()  # 1 -> 0
+        fp = all_predictions_result.filter(F.col("predicted_recommend") == 1).filter(F.col("recommend") == 0).count()  # 0 -> 1
+        tn = all_predictions_result.filter(F.col("predicted_recommend") == 0).filter(F.col("recommend") == 0).count()  # 0 -> 0
+
+        print(f"""
+        1 -> 1 (True Positive): {tp}, 
+        1 -> 0 (False Negative): {fn}, 
+        0 -> 1 (False Positive): {fp}, 
+        0 -> 0 (True Negative): {tn}""")
+
+
+def save_results(self):
+        final_predictions_result = self.clothes_top_predictions_result.union(self.pants_predictions_result) \
+            .union(self.shoes_predictions_result).union(self.outers_predictions_result)
+
+        final_predictions_result = final_predictions_result.toPandas()
+
+        final_predictions_result_file = os.path.join(self.output_dir, "predict_output.csv")
+        final_predictions_result.to_csv(final_predictions_result_file, index=False, encoding="utf-8-sig")
+        print(final_predictions_result.shape)
+        print("Success data save")
 
 def main():
     # product_rankings_path, product_keywords_path
@@ -148,6 +213,8 @@ def main():
     recommendation.vectorize_keywords()
     recommendation.train_models()
     recommendation.evaluate_models()
+    recommendation.predict_and_evaluate()
+    recommendation.save_results()
 
 if __name__ == "__main__":
     main()
