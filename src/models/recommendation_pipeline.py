@@ -1,14 +1,17 @@
 import os
 
+import pandas as pd
 from pyspark.ml import Pipeline
-from pyspark.ml.feature import CountVectorizer, OneHotEncoder, StringIndexer, VectorAssembler
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql.functions import col, desc, explode, lower, regexp_replace, row_number, when, expr, split
-from pyspark.sql.window import Window
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-
+from pyspark.ml.feature import (CountVectorizer, OneHotEncoder, StringIndexer,
+                                VectorAssembler)
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.functions import (col, collect_list, collect_set, desc,
+                                   explode, expr, lower, regexp_replace,
+                                   row_number, size, split, trim, udf, when)
+from pyspark.sql.window import Window
 
 class ProductRecommendation:
     def __init__(self, product_rankings_path, product_keywords_path, output_dir):
@@ -28,10 +31,10 @@ class ProductRecommendation:
                                 .drop("row_number")  # 임시 컬럼 제거
         )
         
-        # 상위 33%인 100위를 기준으로 분리
+        # 상위 20%인 60위를 기준으로 분리
         self.product_rankings = self.product_rankings.withColumn(
             "recommend",
-            when(col("ranking") <= 100, 1).otherwise(0)
+            when(col("ranking") <= 60, 1).otherwise(0)
         )
 
         # ranking 컬럼 삭제
@@ -120,21 +123,39 @@ class ProductRecommendation:
     def evaluate_models(self):
         def evaluate_model(model, test_data):
             predictions = model.transform(test_data)
-            evaluator = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="accuracy")
-            accuracy = evaluator.evaluate(predictions)
-            return accuracy
+            #evaluator = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="accuracy")
+            #accuracy = evaluator.evaluate(predictions)
 
-        # 훈련 데이터 정확도 계산
-        self.clothes_top_accuracy_train = evaluate_model(self.clothes_top_model, self.clothes_top_data_train)
+            evaluator_accuracy = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="accuracy")
+            evaluator_precision = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="weightedPrecision")
+            evaluator_recall = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="weightedRecall")
+        
+            accuracy = evaluator_accuracy.evaluate(predictions)
+            precision = evaluator_precision.evaluate(predictions)
+            recall = evaluator_recall.evaluate(predictions)
+            return accuracy, precision, recall
+
+        # 훈련 데이터 정확도, precision, recall 계산
+        """self.clothes_top_accuracy_train = evaluate_model(self.clothes_top_model, self.clothes_top_data_train)
         self.pants_accuracy_train = evaluate_model(self.pants_model, self.pants_data_train)
         self.shoes_accuracy_train = evaluate_model(self.shoes_model, self.shoes_data_train)
-        self.outers_accuracy_train = evaluate_model(self.outers_model, self.outers_data_train)
+        self.outers_accuracy_train = evaluate_model(self.outers_model, self.outers_data_train)"""
+        self.clothes_top_accuracy_train, self.clothes_top_precision_train, self.clothes_top_recall_train = evaluate_model(self.clothes_top_model, self.clothes_top_data_train)
+        self.pants_accuracy_train, self.pants_precision_train, self.pants_recall_train = evaluate_model(self.pants_model, self.pants_data_train)
+        self.shoes_accuracy_train, self.shoes_precision_train, self.shoes_recall_train = evaluate_model(self.shoes_model, self.shoes_data_train)
+        self.outers_accuracy_train, self.outers_precision_train, self.outers_recall_train = evaluate_model(self.outers_model, self.outers_data_train)
 
-        # 테스트 데이터 정확도 계산
-        self.clothes_top_accuracy_test = evaluate_model(self.clothes_top_model, self.clothes_top_data_test)
+
+        # 테스트 데이터 정확도, precision, recall 계산
+        """self.clothes_top_accuracy_test = evaluate_model(self.clothes_top_model, self.clothes_top_data_test)
         self.pants_accuracy_test = evaluate_model(self.pants_model, self.pants_data_test)
         self.shoes_accuracy_test = evaluate_model(self.shoes_model, self.shoes_data_test)
-        self.outers_accuracy_test = evaluate_model(self.outers_model, self.outers_data_test)
+        self.outers_accuracy_test = evaluate_model(self.outers_model, self.outers_data_test)"""
+        self.clothes_top_accuracy_test, self.clothes_top_precision_test, self.clothes_top_recall_test = evaluate_model(self.clothes_top_model, self.clothes_top_data_test)
+        self.pants_accuracy_test, self.pants_precision_test, self.pants_recall_test = evaluate_model(self.pants_model, self.pants_data_test)
+        self.shoes_accuracy_test, self.shoes_precision_test, self.shoes_recall_test = evaluate_model(self.shoes_model, self.shoes_data_test)
+        self.outers_accuracy_test, self.outers_precision_test, self.outers_recall_test = evaluate_model(self.outers_model, self.outers_data_test)
+
     
     def predict_and_evaluate(self):
         def predict_recommendation(test_data, model):
@@ -205,7 +226,7 @@ def main():
     # product_rankings_path, product_keywords_path
     product_rankings_path = "hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/processed/product_rankings.csv"
     product_keywords_path = "hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/processed/product_keywords.csv"
-    output_dir = "../../data/output/"
+    output_dir = "./data/output/"
 
     recommendation = ProductRecommendation(product_rankings_path, product_keywords_path, output_dir) 
     
