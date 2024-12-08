@@ -32,10 +32,10 @@ class ProductRecommendation:
                                 .drop("row_number")  # 임시 컬럼 제거
         )
         
-        # 상위 50%인 150위를 기준으로 분리
+        # 상위 20%인 60위를 기준으로 분리
         self.product_rankings = self.product_rankings.withColumn(
             "recommend",
-            when(col("ranking") <= 150, 1).otherwise(0)
+            when(col("ranking") <= 60, 1).otherwise(0)
         )
 
         # ranking 컬럼 삭제
@@ -110,10 +110,10 @@ class ProductRecommendation:
         self.shoes_data = self.vectorized_data.filter(col("category") == "shoes")
         self.outers_data = self.vectorized_data.filter(col("category") == "outers")
 
-        self.clothes_top_data_train, self.clothes_top_data_test = self.clothes_top_data.randomSplit([0.7, 0.3], seed=42)
-        self.pants_data_train, self.pants_data_test = self.pants_data.randomSplit([0.7, 0.3], seed=42)
-        self.shoes_data_train, self.shoes_data_test = self.shoes_data.randomSplit([0.7, 0.3], seed=42)
-        self.outers_data_train, self.outers_data_test = self.outers_data.randomSplit([0.7, 0.3], seed=42)
+        self.clothes_top_data_train, self.clothes_top_data_test = self.clothes_top_data.randomSplit([0.8, 0.2], seed=42)
+        self.pants_data_train, self.pants_data_test = self.pants_data.randomSplit([0.8, 0.2], seed=42)
+        self.shoes_data_train, self.shoes_data_test = self.shoes_data.randomSplit([0.8, 0.2], seed=42)
+        self.outers_data_train, self.outers_data_test = self.outers_data.randomSplit([0.8, 0.2], seed=42)
 
         # 모델 훈련
         self.clothes_top_model = train_model(self.clothes_top_data_train)
@@ -124,119 +124,73 @@ class ProductRecommendation:
     def evaluate_models(self):
         def evaluate_model(model, test_data):
             predictions = model.transform(test_data)
-            #evaluator = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="accuracy")
-            #accuracy = evaluator.evaluate(predictions)
+            evaluator = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="accuracy")
+            accuracy = evaluator.evaluate(predictions)
+            return accuracy
 
-            evaluator_accuracy = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="accuracy")
-            evaluator_precision = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="weightedPrecision")
-            evaluator_recall = MulticlassClassificationEvaluator(labelCol="recommend", predictionCol="prediction", metricName="weightedRecall")
-        
-            accuracy = evaluator_accuracy.evaluate(predictions)
-            precision = evaluator_precision.evaluate(predictions)
-            recall = evaluator_recall.evaluate(predictions)
-            return accuracy, precision, recall
-
-        # 훈련 데이터 정확도, precision, recall 계산
-        """self.clothes_top_accuracy_train = evaluate_model(self.clothes_top_model, self.clothes_top_data_train)
+        # 훈련 데이터 정확도 계산
+        self.clothes_top_accuracy_train = evaluate_model(self.clothes_top_model, self.clothes_top_data_train)
         self.pants_accuracy_train = evaluate_model(self.pants_model, self.pants_data_train)
         self.shoes_accuracy_train = evaluate_model(self.shoes_model, self.shoes_data_train)
-        self.outers_accuracy_train = evaluate_model(self.outers_model, self.outers_data_train)"""
-        self.clothes_top_accuracy_train, self.clothes_top_precision_train, self.clothes_top_recall_train = evaluate_model(self.clothes_top_model, self.clothes_top_data_train)
-        self.pants_accuracy_train, self.pants_precision_train, self.pants_recall_train = evaluate_model(self.pants_model, self.pants_data_train)
-        self.shoes_accuracy_train, self.shoes_precision_train, self.shoes_recall_train = evaluate_model(self.shoes_model, self.shoes_data_train)
-        self.outers_accuracy_train, self.outers_precision_train, self.outers_recall_train = evaluate_model(self.outers_model, self.outers_data_train)
+        self.outers_accuracy_train = evaluate_model(self.outers_model, self.outers_data_train)
 
-
-        # 테스트 데이터 정확도, precision, recall 계산
-        """self.clothes_top_accuracy_test = evaluate_model(self.clothes_top_model, self.clothes_top_data_test)
+        # 테스트 데이터 정확도 계산
+        self.clothes_top_accuracy_test = evaluate_model(self.clothes_top_model, self.clothes_top_data_test)
         self.pants_accuracy_test = evaluate_model(self.pants_model, self.pants_data_test)
         self.shoes_accuracy_test = evaluate_model(self.shoes_model, self.shoes_data_test)
-        self.outers_accuracy_test = evaluate_model(self.outers_model, self.outers_data_test)"""
-        self.clothes_top_accuracy_test, self.clothes_top_precision_test, self.clothes_top_recall_test = evaluate_model(self.clothes_top_model, self.clothes_top_data_test)
-        self.pants_accuracy_test, self.pants_precision_test, self.pants_recall_test = evaluate_model(self.pants_model, self.pants_data_test)
-        self.shoes_accuracy_test, self.shoes_precision_test, self.shoes_recall_test = evaluate_model(self.shoes_model, self.shoes_data_test)
-        self.outers_accuracy_test, self.outers_precision_test, self.outers_recall_test = evaluate_model(self.outers_model, self.outers_data_test)
+        self.outers_accuracy_test = evaluate_model(self.outers_model, self.outers_data_test)
 
-    
     def predict_and_evaluate(self):
         def predict_recommendation(test_data, model):
             predictions = model.transform(test_data)
             predictions = predictions.withColumn("predicted_recommend", F.col("prediction"))
             return predictions
-    
-        # 각 카테고리별 예측 데이터 생성
+
+        # 예측
         clothes_top_predictions = predict_recommendation(self.clothes_top_data_test, self.clothes_top_model)
         pants_predictions = predict_recommendation(self.pants_data_test, self.pants_model)
         shoes_predictions = predict_recommendation(self.shoes_data_test, self.shoes_model)
         outers_predictions = predict_recommendation(self.outers_data_test, self.outers_model)
-    
-        self.clothes_top_predictions_result = clothes_top_predictions.select("productId", "category", "recommend", "predicted_recommend")
-        self.pants_predictions_result = pants_predictions.select("productId", "category", "recommend", "predicted_recommend")
-        self.shoes_predictions_result = shoes_predictions.select("productId", "category", "recommend", "predicted_recommend")
-        self.outers_predictions_result = outers_predictions.select("productId", "category", "recommend", "predicted_recommend")
-    
-        # 기존 정확도 출력
+
+        # 예측 결과를 각 변수에 저장
+        self.clothes_top_predictions_result = clothes_top_predictions.select("productId", "recommend", "predicted_recommend")
+        self.pants_predictions_result = pants_predictions.select("productId", "recommend", "predicted_recommend")
+        self.shoes_predictions_result = shoes_predictions.select("productId", "recommend", "predicted_recommend")
+        self.outers_predictions_result = outers_predictions.select("productId", "recommend", "predicted_recommend")
+
+        # 정확도 출력
         print(f"Clothes Top Train Accuracy: {self.clothes_top_accuracy_train:.4f}")
         print(f"Pants Train Accuracy: {self.pants_accuracy_train:.4f}")
         print(f"Shoes Train Accuracy: {self.shoes_accuracy_train:.4f}")
         print(f"Outers Train Accuracy: {self.outers_accuracy_train:.4f}")
-    
+
         print(f"Clothes Top Test Accuracy: {self.clothes_top_accuracy_test:.4f}")
         print(f"Pants Test Accuracy: {self.pants_accuracy_test:.4f}")
         print(f"Shoes Test Accuracy: {self.shoes_accuracy_test:.4f}")
         print(f"Outers Test Accuracy: {self.outers_accuracy_test:.4f}")
-    
-        # 전체 예측 결과 통합
+
+        # 전체 카테고리 예측 결과 결합
         all_predictions_result = self.clothes_top_predictions_result \
             .union(self.pants_predictions_result) \
             .union(self.shoes_predictions_result) \
             .union(self.outers_predictions_result)
-    
-        # 카테고리별 TP, FN, FP, TN 계산 및 출력
-        categories = ["clothes_top", "pants", "shoes", "outers"]
-        for category in categories:
-            category_predictions = all_predictions_result.filter(F.col("category") == category)
-    
-            tp = category_predictions.filter((F.col("predicted_recommend") == 1) & (F.col("recommend") == 1)).count()  # 1 -> 1
-            fn = category_predictions.filter((F.col("predicted_recommend") == 0) & (F.col("recommend") == 1)).count()  # 1 -> 0
-            fp = category_predictions.filter((F.col("predicted_recommend") == 1) & (F.col("recommend") == 0)).count()  # 0 -> 1
-            tn = category_predictions.filter((F.col("predicted_recommend") == 0) & (F.col("recommend") == 0)).count()  # 0 -> 0
-    
-            recall = round(tp / (tp + fn), 2) if (tp + fn) > 0 else 0.0
-            precision = round(tp / (tp + fp), 2) if (tp + fp) > 0 else 0.0
-    
-            print(f"""
-            Category: {category}
-            True Positive (TP): {tp}
-            False Negative (FN): {fn}
-            False Positive (FP): {fp}
-            True Negative (TN): {tn}
-            Recall: {recall}
-            Precision: {precision}
-            """)
-    
-        # 전체 데이터 TP, FN, FP, TN 계산 및 출력
-        tp = all_predictions_result.filter((F.col("predicted_recommend") == 1) & (F.col("recommend") == 1)).count()
-        fn = all_predictions_result.filter((F.col("predicted_recommend") == 0) & (F.col("recommend") == 1)).count()
-        fp = all_predictions_result.filter((F.col("predicted_recommend") == 1) & (F.col("recommend") == 0)).count()
-        tn = all_predictions_result.filter((F.col("predicted_recommend") == 0) & (F.col("recommend") == 0)).count()
-    
-        recall = round(tp / (tp + fn), 2) if (tp + fn) > 0 else 0.0
-        precision = round(tp / (tp + fp), 2) if (tp + fp) > 0 else 0.0
-    
+
+        # Confusion Matrix Count (True Positive, False Negative, False Positive, True Negative)
+        tp = all_predictions_result.filter(F.col("predicted_recommend") == 1).filter(F.col("recommend") == 1).count()  # 1 -> 1
+        fn = all_predictions_result.filter(F.col("predicted_recommend") == 0).filter(F.col("recommend") == 1).count()  # 1 -> 0
+        fp = all_predictions_result.filter(F.col("predicted_recommend") == 1).filter(F.col("recommend") == 0).count()  # 0 -> 1
+        tn = all_predictions_result.filter(F.col("predicted_recommend") == 0).filter(F.col("recommend") == 0).count()  # 0 -> 0
+
         print(f"""
-        Overall Results:
-        True Positive (TP): {tp}
-        False Negative (FN): {fn}
-        False Positive (FP): {fp}
-        True Negative (TN): {tn}
-        Recall: {recall}
-        Precision: {precision}
-        """)
+        1 -> 1 (True Positive): {tp}, 
+        1 -> 0 (False Negative): {fn}, 
+        0 -> 1 (False Positive): {fp}, 
+        0 -> 0 (True Negative): {tn}""")
 
+    
 
-
-def save_results(self):
+    def save_results(self):
+        # 최종 결과 저장
         final_predictions_result = self.clothes_top_predictions_result.union(self.pants_predictions_result) \
             .union(self.shoes_predictions_result).union(self.outers_predictions_result)
 
@@ -251,7 +205,7 @@ def main():
     # product_rankings_path, product_keywords_path
     product_rankings_path = "hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/processed/product_rankings.csv"
     product_keywords_path = "hdfs://sandbox-hdp.hortonworks.com:8020/user/maria_dev/term_project_data/processed/product_keywords.csv"
-    output_dir = "./data/output/"
+    output_dir = "../../data/output/"
 
     recommendation = ProductRecommendation(product_rankings_path, product_keywords_path, output_dir) 
     
